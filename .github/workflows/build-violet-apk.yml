@@ -1,0 +1,68 @@
+name: HEX PULSE - Violet Rush Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-violet-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Repository files
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Android API 36 build tools
+        run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Unpack only the new Violet Rush test package
+        run: |
+          set -eu
+          test -s HEX_PULSE_VIOLET_ANDROID_V48_KAYNAK.zip
+          unzip -t HEX_PULSE_VIOLET_ANDROID_V48_KAYNAK.zip | tail -2
+          mkdir -p violet-project
+          unzip -q HEX_PULSE_VIOLET_ANDROID_V48_KAYNAK.zip -d violet-project
+          test -f violet-project/app/src/main/assets/index.html
+          test -f violet-project/app/src/main/java/com/hexpulse/arcade/MainActivity.java
+
+      - name: Verify exact Violet Rush game and safe separate app identity
+        run: |
+          python3 violet-project/test_project.py
+          grep -q "applicationId 'com.hexpulse.arcade.violetpreview'" violet-project/app/build.gradle
+          grep -q 'android:label="HEX PULSE Violet"' violet-project/app/src/main/AndroidManifest.xml
+
+      - name: Build installable debug APK
+        working-directory: violet-project
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Name APK and checksum
+        run: |
+          set -eu
+          test -s violet-project/app/build/outputs/apk/debug/app-debug.apk
+          cp violet-project/app/build/outputs/apk/debug/app-debug.apk HEX-PULSE-VIOLET-RUSH-TEST.apk
+          sha256sum HEX-PULSE-VIOLET-RUSH-TEST.apk > HEX-PULSE-VIOLET-SHA256.txt
+
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HEX-PULSE-VIOLET-TEST-APK
+          path: |
+            HEX-PULSE-VIOLET-RUSH-TEST.apk
+            HEX-PULSE-VIOLET-SHA256.txt
+          if-no-files-found: error
