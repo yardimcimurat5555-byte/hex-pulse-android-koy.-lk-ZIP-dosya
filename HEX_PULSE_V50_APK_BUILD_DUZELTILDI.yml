@@ -1,5 +1,4 @@
-name: HEX PULSE V5.0 - AdMob TEST (2 Olum)
-run-name: HEX PULSE V5.0 - Reklamli Android APK
+name: HEX PULSE - V4.9 2 Deaths AdMob TEST
 
 on:
   workflow_dispatch:
