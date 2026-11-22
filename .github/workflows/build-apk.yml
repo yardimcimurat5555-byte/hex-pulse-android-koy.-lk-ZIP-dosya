@@ -1,4 +1,4 @@
-name: HEX PULSE V4.7 - Android Test APK
+name: HEX PULSE V4.7 - Acilis Onarim APK
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  build-test-apk:
+  build-startup-fix:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -25,7 +25,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Install Android 16 build tools
+      - name: Install Android 16 platform
         run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0'
 
       - name: Set up Gradle 8.13
@@ -33,35 +33,36 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Open the supplied game project
+      - name: Unpack the corrected HEX PULSE Android source
         run: |
-          test -f HEX_PULSE_V47_ANDROID_APK_KAYNAK.zip || { echo 'Oyun ZIP dosyasi eksik'; exit 1; }
-          unzip -t HEX_PULSE_V47_ANDROID_APK_KAYNAK.zip | tail -2
+          test -f HEX_PULSE_ANDROID_ACILIS_FIX_V47.zip || { echo 'Acilis onarim ZIP eksik'; exit 1; }
+          unzip -t HEX_PULSE_ANDROID_ACILIS_FIX_V47.zip | tail -2
           mkdir -p project
-          unzip -q -o HEX_PULSE_V47_ANDROID_APK_KAYNAK.zip -d project
-          test -f project/app/src/main/assets/index.html
-          test -f project/app/build.gradle
+          unzip -q -o HEX_PULSE_ANDROID_ACILIS_FIX_V47.zip -d project
           test -f project/app/src/main/java/com/hexpulse/arcade/MainActivity.java
+          test -f project/app/src/main/assets/index.html
 
-      - name: Check game JavaScript and offline configuration
+      - name: Check preserved game HTML and Android project
         run: |
           python3 project/test_project.py
+          grep -q 'loadDataWithBaseURL' project/app/src/main/java/com/hexpulse/arcade/MainActivity.java
+          grep -q 'onRenderProcessGone' project/app/src/main/java/com/hexpulse/arcade/MainActivity.java
 
-      - name: Compile Android debug APK
+      - name: Build new Android debug APK
         working-directory: project
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
-      - name: Check APK exists and calculate digest
+      - name: Verify APK
         run: |
           test -s project/app/build/outputs/apk/debug/app-debug.apk
-          cp project/app/build/outputs/apk/debug/app-debug.apk ./HEX-PULSE-V47-test.apk
-          sha256sum HEX-PULSE-V47-test.apk > APK_SHA256.txt
+          cp project/app/build/outputs/apk/debug/app-debug.apk HEX-PULSE-STARTUP-FIX.apk
+          sha256sum HEX-PULSE-STARTUP-FIX.apk > APK_SHA256.txt
 
-      - name: Save installable APK
+      - name: Upload installable test APK
         uses: actions/upload-artifact@v4
         with:
-          name: HEX-PULSE-V47-ANDROID-APK
+          name: HEX-PULSE-STARTUP-FIX
           path: |
-            HEX-PULSE-V47-test.apk
+            HEX-PULSE-STARTUP-FIX.apk
             APK_SHA256.txt
           if-no-files-found: error
