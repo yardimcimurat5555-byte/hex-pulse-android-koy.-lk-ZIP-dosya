@@ -2,6 +2,12 @@ name: HEX PULSE V5.0 - AdMob TEST (2 Olum)
 run-name: HEX PULSE V5.0 - Reklamli Android APK
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-ads-test.yml'
+      - 'HEX_PULSE_V50_ADMOB_TEST_SOURCE.zip'
   workflow_dispatch:
 
 permissions:
