@@ -1,0 +1,51 @@
+name: HEX PULSE V5.1 - Gizlilik TEST APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'HEX_PULSE_V51_GIZLILIK_TEST_SOURCE.zip'
+      - '.github/workflows/build-v51-privacy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HEX_PRIVACY_URL: ${{ vars.PRIVACY_POLICY_URL }}
+    steps:
+      - name: Kaynaklari al
+        uses: actions/checkout@v4
+      - name: JDK 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK kur
+        uses: android-actions/setup-android@v4
+      - name: Android 36 kur
+        run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Gradle kur
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: V5.1 test kaynaklarini ac ve kontrol et
+        run: |
+          set -eu
+          test -s HEX_PULSE_V51_GIZLILIK_TEST_SOURCE.zip
+          mkdir -p build-v51
+          unzip -q HEX_PULSE_V51_GIZLILIK_TEST_SOURCE.zip -d build-v51
+          python3 build-v51/test_project.py
+      - name: Guvenli reklamlarla APK derle
+        working-directory: build-v51
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - name: Test APK'sini sun
+        uses: actions/upload-artifact@v4
+        with:
+          name: HEX-PULSE-V51-GIZLILIK-TEST-APK
+          path: build-v51/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
